@@ -26,12 +26,10 @@ const CategoryCard = ({ title, image, href, className, style }: CategoryCardProp
         className="w-full h-full object-cover image-hover"
       />
       <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
-        <h3 className="font-serif text-xl lg:text-2xl text-cream font-medium">
+        <h3 className="font-serif text-xl lg:text-2xl text-white font-medium">
           {title}
         </h3>
-        <span className="text-sm text-cream/80 font-sans mt-1 block group-hover:underline">
-          Shop now →
-        </span>
+        
       </div>
     </Link>
   );

@@ -4,11 +4,11 @@ import BrandLogo from "@/components/products/BrandLogo";
 import { Button } from "@/components/ui/button";
 
 // Import generated images
-import categoryWomen from "@/assets/category-women.jpg";
-import categoryMen from "@/assets/category-men.jpg";
-import categoryKids from "@/assets/category-kids.jpg";
-import categoryAccessories from "@/assets/category-accessories.jpg";
-import categoryDecor from "@/assets/category-decor.jpg";
+import categoryWomen from "@/assets/chick.png";
+import categoryMen from "@/assets/guy.png";
+import categoryKids from "@/assets/kiddos.png";
+import categoryAccessories from "@/assets/jewel.png";
+import categoryDecor from "@/assets/home.png";
 
 const categories = [
   { 
