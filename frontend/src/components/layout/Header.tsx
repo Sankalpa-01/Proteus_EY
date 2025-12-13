@@ -19,8 +19,7 @@ const Header = () => {
   const { itemCount } = useCart();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-      <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
+<header className="fixed top-0 left-1/2 transform -translate-x-1/2 w-full max-w-368 lg:max-w-16xl z-50 bg-[#FFF6E4] backdrop-blur-md border-b border-border/50 rounded-b-2xl shadow-sm">      <div className="container mx-auto px-6 sm:px-6 py-3 sm:py-4">
         {/* Mobile Header */}
         <div className="flex items-center justify-between lg:hidden">
           {/* Mobile Menu Trigger */}
@@ -34,7 +33,7 @@ const Header = () => {
               <div className="flex flex-col h-full">
                 <div className="mb-8">
                   <Link to="/" onClick={() => setIsOpen(false)}>
-                    <h1 className="font-serif text-2xl font-semibold text-foreground">
+                    <h1 className="font-kurale text-3xl text-[#B55A00]">
                       Proteus
                     </h1>
                   </Link>
@@ -65,7 +64,7 @@ const Header = () => {
 
           {/* Mobile Logo */}
           <Link to="/" className="group">
-            <h1 className="font-serif text-2xl font-semibold tracking-wide text-foreground transition-colors group-hover:text-primary">
+            <h1 className="font-kurale text-2xl tracking-wide text-[#B55A00] transition-colors group-hover:text-primary">
               Proteus
             </h1>
           </Link>
@@ -88,7 +87,7 @@ const Header = () => {
           {/* Logo */}
           <div className="flex justify-center mb-3">
             <Link to="/" className="group">
-              <h1 className="font-serif text-3xl font-semibold tracking-wide text-foreground transition-colors group-hover:text-primary">
+              <h1 className="font-kurale text-4xl tracking-wide text-[#B55A00] transition-colors group-hover:text-primary">
                 Proteus
               </h1>
             </Link>
@@ -104,14 +103,14 @@ const Header = () => {
                     className={cn(
                       "font-sans text-sm tracking-widest transition-all duration-300 relative py-1",
                       location.pathname === link.path
-                        ? "text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "text-[#b55a00] font-medium"
+                        : "text-muted-[#b55a00] hover:text-foreground"
                     )}
                   >
                     {link.name}
                     <span
                       className={cn(
-                        "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
+                        "absolute bottom-0 left-0 h-0.5 bg-[#b55a00] transition-all duration-300",
                         location.pathname === link.path ? "w-full" : "w-0 group-hover:w-full"
                       )}
                     />

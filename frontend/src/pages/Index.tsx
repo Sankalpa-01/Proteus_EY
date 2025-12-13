@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 // Import generated images
-import heroFashion from "@/assets/hero-fashion.jpg";
-import greenDress from "@/assets/gallery-green-dress.jpg";
-import orangeSweater from "@/assets/gallery-orange-sweater.jpg";
-import jewelry from "@/assets/gallery-jewelry.jpg";
-import productSweater from "@/assets/product-white-sweater.jpg";
+import heroFashion from "@/assets/purpledress.png";
+import greenDress from "@/assets/orangeMan.png";
+import orangeSweater from "@/assets/necklace.png";
+import jewelry from "@/assets/brownMan.png";
+import productSweater from "@/assets/girlinred.png";
 
 const galleryImages = [greenDress, orangeSweater, jewelry, productSweater];
 
