@@ -51,69 +51,78 @@ const Products = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column - Category Cards */}
-          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
-            {/* First row - 2 cards */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {categories.slice(0, 2).map((cat, i) => (
-                <CategoryCard
-                  key={cat.title}
-                  {...cat}
-                  className="h-40 sm:h-48 md:h-56 opacity-0 animate-slide-up"
-                  style={{ animationDelay: `${i * 0.1}s`, animationFillMode: "forwards" }}
-                />
-              ))}
-            </div>
-            {/* Second row - 3 cards */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-4">
-              {categories.slice(2).map((cat, i) => (
-                <CategoryCard
-                  key={cat.title}
-                  {...cat}
-                  className="h-32 sm:h-36 md:h-44 opacity-0 animate-slide-up"
-                  style={{ animationDelay: `${(i + 2) * 0.1}s`, animationFillMode: "forwards" }}
-                />
-              ))}
-            </div>
+        {/* 1 column by default, 2 columns on lg */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Left Column */}
+          <div className="space-y-3 sm:space-y-4">
+            <CategoryCard
+              {...categories[0]}
+              className="h-28 sm:h-36 md:h-50 opacity-0 animate-slide-up"
+              style={{ animationDelay: "0s", animationFillMode: "forwards" }}
+            />
+            <CategoryCard
+              {...categories[1]}
+              className="h-28 sm:h-36 md:h-50 opacity-0 animate-slide-up"
+              style={{ animationDelay: "0.1s", animationFillMode: "forwards" }}
+            />
+            <CategoryCard
+              {...categories[3]}
+              className="h-28 sm:h-36 md:h-50 opacity-0 animate-slide-up"
+              style={{ animationDelay: "0.2s", animationFillMode: "forwards" }}
+            />
           </div>
 
-          {/* Right Column - Featured Images */}
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
-            <div className="overflow-hidden rounded-xl sm:rounded-2xl hover-lift opacity-0 animate-slide-in-right" style={{ animationDelay: "0.2s", animationFillMode: "forwards" }}>
-              <img
-                src={categoryMen}
-                alt="Featured man"
-                className="w-full h-40 sm:h-48 lg:h-64 object-cover image-hover"
-              />
-            </div>
-            <div className="overflow-hidden rounded-xl sm:rounded-2xl hover-lift opacity-0 animate-slide-in-right" style={{ animationDelay: "0.3s", animationFillMode: "forwards" }}>
-              <img
-                src={categoryWomen}
-                alt="Featured woman"
-                className="w-full h-40 sm:h-48 lg:h-64 object-cover image-hover"
-              />
-            </div>
+          {/* Right Column */}
+          {/* apply the vertical offset ONLY on large screens */}
+          <div className="space-y-3 sm:space-y-4 lg:mt-28">
+            <CategoryCard
+              {...categories[2]}
+              className="h-28 sm:h-36 md:h-50 opacity-0 animate-slide-up"
+              style={{ animationDelay: "0.15s", animationFillMode: "forwards" }}
+            />
+            <CategoryCard
+              {...categories[4]}
+              className="h-28 sm:h-36 md:h-50 opacity-0 animate-slide-up"
+              style={{ animationDelay: "0.25s", animationFillMode: "forwards" }}
+            />
           </div>
         </div>
 
-        {/* Brands Section */}
+        {/* Brands Section with Endless Scroll */}
         <section className="mt-10 sm:mt-16 text-center">
-          <Button variant="category" size="default" className="mb-6 sm:mb-8 text-sm sm:text-base">
+          <Button
+            variant="category"
+            size="default"
+            className="mb-6 sm:mb-8 text-sm sm:text-base"
+          >
             Our brands
           </Button>
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-            {brands.map((brand, i) => (
-              <BrandLogo
-                key={brand}
-                name={brand}
-                className="opacity-0 animate-fade-in"
-                style={{ animationDelay: `${i * 0.1}s`, animationFillMode: "forwards" }}
-              />
-            ))}
+          <div className="relative overflow-hidden">
+            <div className="flex gap-4 sm:gap-8 animate-scroll">
+              {[...brands, ...brands, ...brands].map((brand, i) => (
+                <BrandLogo key={`${brand}-${i}`} name={brand} className="flex-shrink-0" />
+              ))}
+            </div>
           </div>
         </section>
       </div>
+
+      <style jsx>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-33.333%);
+          }
+        }
+        .animate-scroll {
+          animation: scroll 20s linear infinite;
+        }
+        .animate-scroll:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </Layout>
   );
 };
