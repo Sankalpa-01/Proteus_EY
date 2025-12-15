@@ -8,6 +8,7 @@ export default {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
   ],
   prefix: "",
   theme: {
@@ -23,6 +24,7 @@ export default {
         serif: ["Playfair Display", "Georgia", "serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
         kurale: ['Kurale', 'serif'],
+        jockey: ['"Jockey One"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -2,6 +2,8 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
+
 
 interface SuggestedProduct {
   id: number;
@@ -85,14 +87,17 @@ const MixMatchGallery = ({
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-serif text-base sm:text-lg font-medium text-foreground">
-            MIX & MATCH
-          </h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Complete your look with these AI-recommended pieces
-          </p>
-        </div>
+        
+      <div className="flex flex-col items-center gap-2">
+  <div className="bg-gradient-to-r from-[#3D94E0] via-[#41A4B4] to-[#44B38A] px-20 sm:px-20 py-4 sm:py-4 rounded-full shadow-lg flex items-center gap-2 hover:shadow-xl transition-shadow whitespace-nowrap">
+    <Sparkles className="h-7 w-7 sm:h-7 sm:w-7 text-white" />
+    <span className="text-xl sm:text-xl font-jockey text-white">Mix & Match</span>
+  </div>
+  <p className="text-[18px] sm:text-[16px] text-[#B55A00]">
+    Try your jumper with these jeans
+  </p>
+</div>
+
         <div className="hidden sm:flex gap-1">
           <Button
             variant="outline"
