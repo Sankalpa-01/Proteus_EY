@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogClose,
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, X, CheckCircle2, RefreshCcw } from "lucide-react";
+import { UploadCloud, X, CheckCircle2, RefreshCcw, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import correctPose from "@/assets/correct.png";
 import wrongPose from "@/assets/wrong.jpg";
+import { performVirtualTryOn } from "@/services/virtualTryOnApi";
+import { useTryOn } from "@/contexts/TryOnContext";
 
 interface VirtualTryOnModalProps {
   open: boolean;
@@ -20,13 +24,17 @@ interface VirtualTryOnModalProps {
 const VirtualTryOnModal = ({
   open,
   onOpenChange,
-  productImage: _productImage,
-  productName: _productName,
+  productImage,
+  productName,
 }: VirtualTryOnModalProps) => {
+  const navigate = useNavigate();
+  const { setTryOnResult } = useTryOn();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(37);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const revokePreview = useCallback(
@@ -44,6 +52,8 @@ const VirtualTryOnModal = ({
     setUploadProgress(37);
     setIsDragging(false);
     setIsUploading(false);
+    setIsProcessing(false);
+    setUploadedFile(null);
   }, [previewUrl, revokePreview]);
 
   useEffect(() => {
@@ -73,11 +83,15 @@ const VirtualTryOnModal = ({
   };
 
   const handleFile = (file?: File) => {
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file || !file.type.startsWith("image/")) {
+      toast.error("Please upload a valid image file");
+      return;
+    }
     const nextUrl = URL.createObjectURL(file);
 
     revokePreview(previewUrl);
     setPreviewUrl(nextUrl);
+    setUploadedFile(file);
     startProgress();
   };
 
@@ -93,6 +107,49 @@ const VirtualTryOnModal = ({
     const file = event.target.files?.[0];
     handleFile(file);
     event.target.value = "";
+  };
+
+  const handleProcessTryOn = async () => {
+    if (!uploadedFile || !productImage) {
+      toast.error("Please upload your photo first");
+      return;
+    }
+
+    setIsProcessing(true);
+    setUploadProgress(50);
+
+    try {
+      toast.info("Processing your virtual try-on... This may take a moment.", {
+        duration: 5000,
+      });
+
+      const result = await performVirtualTryOn(uploadedFile, productImage);
+
+      if (result.success && result.resultImage) {
+        setTryOnResult({
+          resultImage: result.resultImage,
+          modelImage: previewUrl || "",
+          garmentImage: productImage,
+          productName: productName,
+        });
+
+        toast.success("Virtual try-on completed successfully!");
+        onOpenChange(false);
+        navigate("/try-on-result");
+      } else {
+        throw new Error(result.error || "Failed to process try-on");
+      }
+    } catch (error) {
+      console.error("Try-on error:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to process virtual try-on. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+      setUploadProgress(100);
+    }
   };
 
   const displayProgress = previewUrl ? Math.min(uploadProgress, 100) : 37;
@@ -183,7 +240,7 @@ const VirtualTryOnModal = ({
 
             <div className="flex flex-col p-6 md:p-8">
               <div className="mb-8 space-y-4">
-                {isUploading && (
+                {(isUploading || isProcessing) && (
                   <div className="flex items-center justify-end gap-4">
                     <div className="h-2 w-48 rounded-full bg-[#F8E5C8]">
                       <div
@@ -192,7 +249,7 @@ const VirtualTryOnModal = ({
                       />
                     </div>
                     <span className="text-sm font-semibold text-[#B55A00] whitespace-nowrap">
-                      {displayProgress}% Uploaded
+                      {isProcessing ? "Processing..." : `${displayProgress}% Uploaded`}
                     </span>
                   </div>
                 )}
@@ -247,12 +304,21 @@ const VirtualTryOnModal = ({
                 <Button
                   type="button"
                   variant="default"
-                  disabled={!previewUrl || isUploading}
+                  disabled={!previewUrl || isUploading || isProcessing}
                   className="gap-2 bg-[#F6B45A] text-white hover:bg-[#e3a44f] disabled:opacity-60"
-                  onClick={() => onOpenChange(false)}
+                  onClick={handleProcessTryOn}
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Save photo
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Process Try-On
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
