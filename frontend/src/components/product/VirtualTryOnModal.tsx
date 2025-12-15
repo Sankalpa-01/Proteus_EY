@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RotateCcw, Camera, User } from "lucide-react";
+import { UploadCloud, X, CheckCircle2, RefreshCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import correctPose from "@/assets/correct.png";
+import wrongPose from "@/assets/wrong.jpg";
 
 interface VirtualTryOnModalProps {
   open: boolean;
@@ -18,125 +20,244 @@ interface VirtualTryOnModalProps {
 const VirtualTryOnModal = ({
   open,
   onOpenChange,
-  productImage,
-  productName,
+  productImage: _productImage,
+  productName: _productName,
 }: VirtualTryOnModalProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showResult, setShowResult] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(37);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleTryOn = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowResult(true);
-    }, 2000);
+  const revokePreview = useCallback(
+    (url: string | null) => {
+      if (url && url.startsWith("blob:")) {
+        URL.revokeObjectURL(url);
+      }
+    },
+    []
+  );
+
+  const resetUpload = useCallback(() => {
+    revokePreview(previewUrl);
+    setPreviewUrl(null);
+    setUploadProgress(37);
+    setIsDragging(false);
+    setIsUploading(false);
+  }, [previewUrl, revokePreview]);
+
+  useEffect(() => {
+    return () => revokePreview(previewUrl);
+  }, [previewUrl, revokePreview]);
+
+  useEffect(() => {
+    if (!open) {
+      resetUpload();
+    }
+  }, [open, resetUpload]);
+
+  const startProgress = () => {
+    setIsUploading(true);
+    setUploadProgress(42);
+    let current = 42;
+
+    const interval = setInterval(() => {
+      current = Math.min(current + 14, 100);
+      setUploadProgress(current);
+
+      if (current >= 100) {
+        clearInterval(interval);
+        setIsUploading(false);
+      }
+    }, 220);
   };
 
-  const handleReset = () => {
-    setShowResult(false);
-    setIsLoading(false);
+  const handleFile = (file?: File) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const nextUrl = URL.createObjectURL(file);
+
+    revokePreview(previewUrl);
+    setPreviewUrl(nextUrl);
+    startProgress();
   };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    handleFile(file);
+  };
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    handleFile(file);
+    event.target.value = "";
+  };
+
+  const displayProgress = previewUrl ? Math.min(uploadProgress, 100) : 37;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
-        <DialogHeader className="p-4 sm:p-6 pb-0">
-          <DialogTitle className="font-serif text-xl sm:text-2xl flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-soft-green" />
-            Virtual Try-On
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-5xl border-0 bg-transparent p-0 shadow-none"
+      >
+        <div className="relative">
+          <DialogClose
+            onClick={resetUpload}
+            className="absolute -right-2 -top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#B55A00] text-white transition hover:bg-[#A04A00] shadow-lg"
+          >
+            <X className="h-5 w-5" />
+          </DialogClose>
+          
+          <div className="relative w-full overflow-hidden rounded-[28px] bg-white shadow-2xl ring-1 ring-black/5">
 
-        <div className="p-4 sm:p-6 pt-4">
-          <p className="text-muted-foreground text-sm mb-4">
-            Powered by Recommendation Agent - See how {productName} looks on you
-          </p>
+          <div className="grid gap-0 md:grid-cols-2">
+            <div className="bg-[#FFE3B3]/70 p-6 md:p-8">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={(event) => {
+                  event.preventDefault();
+                  setIsDragging(false);
+                }}
+                onDrop={handleDrop}
+                className={cn(
+                  "group relative flex min-h-[480px] flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-amber-300 bg-white/90 px-6 text-center shadow-inner transition",
+                  isDragging && "border-amber-500 bg-amber-50"
+                )}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleInputChange}
+                  className="hidden"
+                />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Model Preview */}
-            <div className="relative aspect-[3/4] bg-gradient-to-b from-muted/50 to-muted rounded-xl overflow-hidden border border-border">
-              {!showResult ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="w-32 h-48 rounded-full bg-muted-foreground/10 flex items-center justify-center mb-4">
-                    <User className="h-20 w-20 text-muted-foreground/30" />
-                  </div>
-                  <p className="text-muted-foreground text-sm">3D Model Preview</p>
-                </div>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative">
-                    {/* Simulated avatar with product overlay */}
-                    <div className="w-40 h-56 bg-gradient-to-b from-muted-foreground/20 to-muted-foreground/30 rounded-xl flex items-center justify-center">
+                {previewUrl ? (
+                  <div className="flex w-full flex-col items-center gap-8">
+                    <div className="relative w-full overflow-hidden rounded-[18px] border border-amber-200 bg-white">
                       <img
-                        src={productImage}
-                        alt={productName}
-                        className="w-36 h-48 object-cover rounded-lg shadow-lg"
+                        src={previewUrl}
+                        alt="Uploaded preview"
+                        className="h-[320px] w-full object-contain"
                       />
+                      <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-amber-700 shadow-sm">
+                        Your photo
+                      </div>
                     </div>
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-soft-green text-foreground text-xs px-3 py-1 rounded-full font-medium">
-                      AI Generated Preview
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Replace or drop another image to update the preview.
+                    </p>
                   </div>
-                </div>
-              )}
-              
-              {isLoading && (
-                <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 border-4 border-soft-green border-t-transparent rounded-full animate-spin mb-3" />
-                  <p className="text-sm text-muted-foreground">Processing...</p>
-                </div>
-              )}
-            </div>
-
-            {/* Product Image */}
-            <div className="relative aspect-[3/4] rounded-xl overflow-hidden border border-border">
-              <img
-                src={productImage}
-                alt={productName}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-2 left-2 right-2 bg-background/90 backdrop-blur-sm rounded-lg p-2">
-                <p className="text-xs font-medium text-foreground truncate">{productName}</p>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex h-28 w-28 items-center justify-center rounded-full bg-amber-100/80 text-amber-700">
+                      <UploadCloud className="h-10 w-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-lg font-semibold text-foreground">
+                        Upload or Drag and drop your image here
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        High quality photos give the best fit preview.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-[#F6B45A] text-white hover:bg-[#e3a44f]"
+                    >
+                      Choose a photo
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 mt-6">
-            {!showResult ? (
-              <Button
-                onClick={handleTryOn}
-                disabled={isLoading}
-                className="flex-1"
-                variant="action"
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                {isLoading ? "Processing..." : "Try On Now"}
-              </Button>
-            ) : (
-              <>
+            <div className="flex flex-col p-6 md:p-8">
+              <div className="mb-8 space-y-4">
+                {isUploading && (
+                  <div className="flex items-center justify-end gap-4">
+                    <div className="h-2 w-48 rounded-full bg-[#F8E5C8]">
+                      <div
+                        className="h-2 rounded-full bg-[#B55A00] transition-[width]"
+                        style={{ width: `${displayProgress}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-semibold text-[#B55A00] whitespace-nowrap">
+                      {displayProgress}% Uploaded
+                    </span>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-[#B55A00] leading-tight">
+                    Upload your favorite pics here to see how the fit looks on you!
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Drop a photo to instantly preview it in your try-on gallery.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex-1">
+                <div className="grid grid-cols-2 gap-6 md:gap-8">
+                  {/* Wrong Pose */}
+                  <div className="relative overflow-hidden rounded-[18px] border border-amber-100 bg-[#FFF7ED] shadow-sm">
+                    <img
+                      src={wrongPose}
+                      alt="Wrong pose guide"
+                      className="h-[280px] w-full object-cover"
+                    />
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-[#B55A00] shadow-lg">
+                      <X className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  {/* Correct Pose */}
+                  <div className="relative overflow-hidden rounded-[18px] border border-amber-100 bg-[#FFF7ED] shadow-sm">
+                    <img
+                      src={correctPose}
+                      alt="Correct pose guide"
+                      className="h-[280px] w-full object-cover"
+                    />
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-[#B55A00] shadow-lg">
+                      <CheckCircle2 className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-6">
                 <Button
-                  onClick={handleReset}
+                  type="button"
                   variant="outline"
-                  className="flex-1"
+                  onClick={resetUpload}
+                  className="gap-2 border-amber-200 text-[#B55A00] hover:bg-amber-50"
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
+                  <RefreshCcw className="h-4 w-4" />
                   Reset
                 </Button>
                 <Button
+                  type="button"
+                  variant="default"
+                  disabled={!previewUrl || isUploading}
+                  className="gap-2 bg-[#F6B45A] text-white hover:bg-[#e3a44f] disabled:opacity-60"
                   onClick={() => onOpenChange(false)}
-                  variant="action"
-                  className="flex-1"
                 >
-                  Continue Shopping
+                  <CheckCircle2 className="h-4 w-4" />
+                  Save photo
                 </Button>
-              </>
-            )}
+              </div>
+            </div>
           </div>
-
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            This is a simulated preview. Actual results may vary.
-          </p>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
