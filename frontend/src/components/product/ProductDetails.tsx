@@ -177,14 +177,14 @@ const ProductDetails = ({ product, productImage, mixMatchImage }: ProductDetails
       <button
         onClick={() => setSelectedSize(recommendedSize)}
         className={cn(
-          "px-5 py-3 rounded-full font-medium text-base transition-all shadow-md hover:shadow-lg",
+          "px-5 py-3 rounded-full text-[20px] font-medium transition-all shadow-md hover:shadow-lg",
           "bg-gradient-to-r from-[#3D94E0] via-[#41A4B4] to-[#44B38A] text-white",
           "hover:opacity-90 flex items-center gap-2",
           isFlashing && selectedSize !== recommendedSize && "animate-flash"
         )}
       >
-        <Sparkles className="h-4 w-4" />
-        Recommended Size {recommendedSize}
+        <Sparkles className="h-6 w-6" />
+       <span> Recommended Size{' '.repeat(8)}{recommendedSize}</span>
       </button>
     </div>
   )}
@@ -229,62 +229,61 @@ IN-STORE TRY ON</span>
 
       {/* Action Buttons */}
       {/* Fixed CTA Bar */}
-<div className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)]">
-  <div className="mx-2 sm:mx-4 mb-4 rounded-tl-[30px] rounded-tr-[30px] bg-[#FDB971] ring-1 ring-black/5">
-    <div className="max-w-4xl mx-auto p-4 sm:p-5">
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-0">
-        <Button
-          variant={justAdded ? "default" : "ghost"}
-          size="lg"
-          className={cn(
-            // white pill like screenshot
-            " flex-1 h-10 sm:h-12 lg:h-14 w-28 sm:w-32 lg:w-36rounded-xl bg-white text-foreground ring-1 ring-black/5 shadow-md hover:shadow-lg hover:bg-white transition-all text-xs sm:text-sm lg:text-base",
-                    "text-sm sm:text-base",
-            justAdded && "bg-soft-green text-foreground hover:bg-soft-green/90"
-          )}
-          onClick={handleAddToCart}
-          disabled={isAddingToCart}
-        >
-          {isAddingToCart ? (
-            <>
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
-              Adding...
-            </>
-          ) : justAdded ? (
-            <>
-              <Check className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              Added!
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              Add to Bag!
-            </>
-          )}
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="lg"
-          className="
-    flex-1 
-    h-10 sm:h-12 lg:h-14
-    w-28 sm:w-32 lg:w-36
-    rounded-xl 
-    bg-white text-foreground 
-    ring-1 ring-black/5 
-    shadow-md hover:shadow-lg hover:bg-white 
-    transition-all 
-    text-xs sm:text-sm lg:text-base
-  "
-        >
-          <Zap className="h-5 w-5 sm:h-6 sm:w-5 mr-2" />
-          Buy Now
-        </Button>
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-[9999]"
+        style={{ 
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+          paddingBottom: 'env(safe-area-inset-bottom)'
+        }}
+      >
+        <div className="mx-2 sm:mx-4 mb-4 rounded-tl-[30px] rounded-tr-[30px] bg-[#F6C99D] ring-1 ring-black/5 shadow-lg">
+          <div className="max-w-4xl mx-auto p-4 sm:p-5">
+            <div className="flex gap-3">
+              <Button
+                variant={justAdded ? "default" : "ghost"}
+                className={cn(
+                  "w-1/2 h-12 sm:h-14 rounded-xl bg-white text-foreground border-2 border-[#F6C99D] hover:bg-white hover:border-[#F6C99D] transition-all text-base flex items-center justify-center gap-2",
+                  justAdded && "bg-amber-50 text-foreground border-[#F6C99D]"
+                )}
+                onClick={handleAddToCart}
+                disabled={isAddingToCart}
+              >
+                {isAddingToCart ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Adding...
+                  </>
+                ) : justAdded ? (
+                  <>
+                    <Check className="h-5 w-5" />
+                    Added!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="h-5 w-5" />
+                    Add to Bag!
+                  </>
+                )}
+              </Button>
+              <Button
+                className="w-1/2 h-12 sm:h-14 rounded-xl bg-white text-foreground border-2 border-[#F6C99D] hover:bg-white hover:border-[#F6C99D] transition-all text-base flex items-center justify-center gap-2"
+                onClick={() => {
+                  handleAddToCart();
+                  // Navigate to cart or checkout
+                }}
+                disabled={isAddingToCart}
+              >
+                <Zap className="h-5 w-5" />
+                Buy Now
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
 
 
       {/* Virtual Try-On Modal */}

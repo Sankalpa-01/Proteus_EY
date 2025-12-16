@@ -6,19 +6,13 @@ import greenDress from "@/assets/orangeMan.png";
 import orangeSweater from "@/assets/gallery-orange-sweater.jpg";
 import jewelry from "@/assets/brownMan.png";
 import productSweater from "@/assets/product-white-sweater.jpg";
-import categoryMen from "@/assets/category-men.jpg";
-import categoryWomen from "@/assets/category-women.jpg";
-import categoryKids from "@/assets/category-kids.jpg";
 
 const galleryImages = [
   { src: heroFashion, span: "col-span-2 row-span-2", mobileSpan: "col-span-2" },
   { src: greenDress, span: "", mobileSpan: "" },
   { src: orangeSweater, span: "", mobileSpan: "" },
-  { src: categoryWomen, span: "row-span-2", mobileSpan: "" },
-  { src: categoryMen, span: "", mobileSpan: "" },
   { src: jewelry, span: "", mobileSpan: "" },
   { src: productSweater, span: "col-span-2", mobileSpan: "col-span-2" },
-  { src: categoryKids, span: "", mobileSpan: "" },
 ];
 
 const Gallery = () => {

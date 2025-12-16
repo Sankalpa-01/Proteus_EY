@@ -247,7 +247,7 @@ const Cart = () => {
             {items.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-amber-100">
                 <div className="relative mb-4">
-                  <div className="w-full h-14 bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 rounded-full border-2 border-gray-800 flex items-center justify-between px-4 relative overflow-visible">
+                  <div className="w-full h-14 bg-gradient-to-r from-[#3D94E0] via-[#41A4B4] to-[#44B38A] rounded-full border-2 border-gray-800 flex items-center justify-between px-4 relative overflow-visible">
                     {/* Left section with sparkle and text */}
                     <div className="flex items-center gap-2 z-10">
                       <Sparkles className="h-6 w-6 text-blue-900 -ml-2" />
@@ -325,7 +325,7 @@ const Cart = () => {
                   <div className="lg:col-span-1">
                     <div className="flex gap-3">
                       <Button
-                        className="flex-1 h-16 bg-[#FFF7E4] border border-[#B55A00] text-[#B55A00] hover:bg-[#FFF7E4]/90 font-semibold rounded-tl-lg rounded-tr-lg"
+                        className="flex-1 h-16 text-[20px] bg-[#FFF7E4] border border-[#B55A00] text-[#B55A00] hover:bg-[#FFF7E4]/90 font-semibold rounded-tl-lg rounded-tr-lg"
                         disabled={selectedItemsList.length === 0}
                         onClick={() => {
                           toast.success("Proceeding to checkout...");
@@ -335,7 +335,7 @@ const Cart = () => {
                         Proceed to pay
                       </Button>
                       <Button
-                        className="flex-1 h-16 bg-[#FFF7E4] border border-[#B55A00] text-[#B55A00] hover:bg-[#FFF7E4]/90 font-semibold rounded-tl-lg rounded-tr-lg"
+                        className="flex-1 h-16 text-[20px] bg-[#FFF7E4] border border-[#B55A00] text-[#B55A00] hover:bg-[#FFF7E4]/90 font-semibold rounded-tl-lg rounded-tr-lg"
                         onClick={() => {
                           toast.info("Coupon feature coming soon!");
                         }}

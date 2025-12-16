@@ -228,7 +228,10 @@ const VirtualTryOnModal = ({
                     <Button
                       type="button"
                       variant="default"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
                       className="bg-[#F6B45A] text-white hover:bg-[#e3a44f]"
                     >
                       Choose a photo

@@ -16,24 +16,31 @@ interface TryOnContextType {
 const TryOnContext = createContext<TryOnContextType | undefined>(undefined);
 
 export const TryOnProvider = ({ children }: { children: ReactNode }) => {
-  const [tryOnResult, setTryOnResult] = useState<TryOnResult | null>(() => {
-    // Load from localStorage on mount
-    const saved = localStorage.getItem("tryOnResult");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [tryOnResult, setTryOnResult] = useState<TryOnResult | null>(null);
 
   const updateTryOnResult = (result: TryOnResult | null) => {
     setTryOnResult(result);
+    // Only store metadata in localStorage, not images (they're too large)
     if (result) {
-      localStorage.setItem("tryOnResult", JSON.stringify(result));
+      try {
+        const metadata = {
+          productName: result.productName,
+          // Store a flag that we have a result, but not the actual images
+          hasResult: true,
+        };
+        localStorage.setItem("tryOnResultMetadata", JSON.stringify(metadata));
+      } catch (error) {
+        // If localStorage fails, just continue without storing
+        console.warn("Failed to save try-on metadata to localStorage:", error);
+      }
     } else {
-      localStorage.removeItem("tryOnResult");
+      localStorage.removeItem("tryOnResultMetadata");
     }
   };
 
   const clearTryOnResult = () => {
     setTryOnResult(null);
-    localStorage.removeItem("tryOnResult");
+    localStorage.removeItem("tryOnResultMetadata");
   };
 
   return (

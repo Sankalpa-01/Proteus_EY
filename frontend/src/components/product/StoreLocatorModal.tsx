@@ -28,7 +28,7 @@ interface StoreLocatorModalProps {
 const storesData: Store[] = [
   {
     id: 1,
-    name: "Proteus Flagship - MG Road",
+    name: "Flagship - MG Road",
     address: "12, MG Road, Bangalore, Karnataka 560001",
     distance: 2.3,
     phone: "+91 80 4567 8901",
@@ -38,7 +38,7 @@ const storesData: Store[] = [
   },
   {
     id: 2,
-    name: "Proteus - Indiranagar",
+    name: " Indiranagar",
     address: "100 Feet Road, Indiranagar, Bangalore 560038",
     distance: 4.7,
     phone: "+91 80 4567 8902",
@@ -48,7 +48,7 @@ const storesData: Store[] = [
   },
   {
     id: 3,
-    name: "Proteus - Phoenix Mall",
+    name: " Phoenix Mall",
     address: "Phoenix MarketCity, Whitefield, Bangalore 560066",
     distance: 8.2,
     phone: "+91 80 4567 8903",
@@ -58,7 +58,7 @@ const storesData: Store[] = [
   },
   {
     id: 4,
-    name: "Proteus - Koramangala",
+    name: " Koramangala",
     address: "80 Feet Road, Koramangala, Bangalore 560034",
     distance: 5.1,
     phone: "+91 80 4567 8904",
@@ -68,7 +68,7 @@ const storesData: Store[] = [
   },
   {
     id: 5,
-    name: "Proteus - UB City",
+    name: " UB City",
     address: "UB City Mall, Vittal Mallya Road, Bangalore 560001",
     distance: 3.5,
     phone: "+91 80 4567 8905",
