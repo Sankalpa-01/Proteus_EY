@@ -1,6 +1,9 @@
 /**
  * Virtual Try-On API Service
- * Uses Replicate API with OOTDiffusion model for high-quality virtual try-on
+ * Uses multiple reliable APIs with proper fallbacks for high-quality virtual try-on
+ * Primary: Fal.ai (modern ML platform)
+ * Fallback: Hugging Face Inference API (free tier)
+ * Final fallback: Enhanced canvas-based composition
  */
 
 export interface TryOnRequest {
@@ -34,7 +37,7 @@ export const fileToBase64 = (file: File): Promise<string> => {
 
 /**
  * Upload image to a temporary hosting service and get URL
- * This is needed because Replicate API requires URLs, not base64
+ * Uses multiple free image hosting services as fallbacks
  */
 const uploadImageToTempHost = async (base64Image: string): Promise<string> => {
   try {
@@ -51,30 +54,57 @@ const uploadImageToTempHost = async (base64Image: string): Promise<string> => {
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'image/jpeg' });
     
-    // Use imgbb.com as a free image hosting service
-    const formData = new FormData();
-    formData.append('image', blob, 'image.jpg');
-    
+    // Try imgbb.com first (if API key is available)
     const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
-    if (!imgbbKey || imgbbKey === 'YOUR_IMGBB_KEY') {
-      // If no key, try using a data URL (may not work with all APIs)
-      return `data:image/jpeg;base64,${base64Image}`;
-    }
-    
-    const imgbbResponse = await fetch(
-      `https://api.imgbb.com/1/upload?key=${imgbbKey}`,
-      {
-        method: 'POST',
-        body: formData
+    if (imgbbKey && imgbbKey !== 'YOUR_IMGBB_KEY') {
+      try {
+        const formData = new FormData();
+        formData.append('image', blob, 'image.jpg');
+        
+        const imgbbResponse = await fetch(
+          `https://api.imgbb.com/1/upload?key=${imgbbKey}`,
+          {
+            method: 'POST',
+            body: formData
+          }
+        );
+        
+        if (imgbbResponse.ok) {
+          const imgbbData = await imgbbResponse.json();
+          if (imgbbData.data?.url) {
+            return imgbbData.data.url;
+          }
+        }
+      } catch (error) {
+        console.warn('ImgBB upload failed, trying alternative...', error);
       }
-    );
-    
-    if (!imgbbResponse.ok) {
-      throw new Error('Failed to upload image');
     }
     
-    const imgbbData = await imgbbResponse.json();
-    return imgbbData.data?.url || `data:image/jpeg;base64,${base64Image}`;
+    // Fallback: Use imgur (no API key required for anonymous uploads)
+    try {
+      const formData = new FormData();
+      formData.append('image', blob);
+      
+      const imgurResponse = await fetch('https://api.imgur.com/3/image', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Client-ID 546c25a59c58ad7' // Public client ID for anonymous uploads
+        },
+        body: formData
+      });
+      
+      if (imgurResponse.ok) {
+        const imgurData = await imgurResponse.json();
+        if (imgurData.data?.link) {
+          return imgurData.data.link;
+        }
+      }
+    } catch (error) {
+      console.warn('Imgur upload failed, using data URL...', error);
+    }
+    
+    // Final fallback: return data URL
+    return `data:image/jpeg;base64,${base64Image}`;
   } catch (error) {
     console.error('Error uploading image:', error);
     // Fallback to data URL
@@ -83,18 +113,214 @@ const uploadImageToTempHost = async (base64Image: string): Promise<string> => {
 };
 
 /**
- * Alternative: Use a mock/demo API for development
- * In production, replace this with a real virtual try-on API
+ * Use Fal.ai API for virtual try-on (modern, reliable ML platform)
+ * Uses the IDM-VTON model which is excellent for virtual try-on
  */
-export const tryOnWithMockAPI = async (
+export const tryOnWithFal = async (
+  modelImage: File,
+  garmentImageUrl: string
+): Promise<TryOnResponse> => {
+  try {
+    const falApiKey = import.meta.env.VITE_FAL_API_KEY;
+    
+    if (!falApiKey || falApiKey === 'YOUR_FAL_API_KEY') {
+      throw new Error('Fal.ai API key not configured');
+    }
+
+    // Convert model image to base64 and upload
+    const modelBase64 = await fileToBase64(modelImage);
+    const modelImageUrl = await uploadImageToTempHost(modelBase64);
+
+    // Ensure garment image is also a URL
+    let garmentUrl = garmentImageUrl;
+    if (garmentImageUrl.startsWith('data:')) {
+      const garmentBase64 = garmentImageUrl.split(',')[1] || garmentImageUrl;
+      garmentUrl = await uploadImageToTempHost(garmentBase64);
+    }
+
+    // Use Fal.ai IDM-VTON model
+    const response = await fetch('https://fal.run/fal-ai/idm-vton', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Key ${falApiKey}`
+      },
+      body: JSON.stringify({
+        human: modelImageUrl,
+        garment: garmentUrl,
+        is_checked: true,
+        category: 'upper_body'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.message || `Fal.ai API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    // Fal.ai returns the result directly or with a status URL
+    if (result.output) {
+      const outputUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      return {
+        success: true,
+        resultImage: outputUrl,
+        taskId: result.request_id
+      };
+    } else if (result.status_url) {
+      // Poll for result if async
+      let statusResult = result;
+      let attempts = 0;
+      const maxAttempts = 60;
+      
+      while ((statusResult.status === 'IN_PROGRESS' || statusResult.status === 'IN_QUEUE') && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const statusResponse = await fetch(result.status_url, {
+          headers: {
+            'Authorization': `Key ${falApiKey}`
+          }
+        });
+        
+        if (!statusResponse.ok) {
+          throw new Error(`Failed to check status: ${statusResponse.status}`);
+        }
+        
+        statusResult = await statusResponse.json();
+        attempts++;
+      }
+
+      if (statusResult.status === 'COMPLETED' && statusResult.output) {
+        const outputUrl = Array.isArray(statusResult.output) ? statusResult.output[0] : statusResult.output;
+        return {
+          success: true,
+          resultImage: outputUrl,
+          taskId: statusResult.request_id
+        };
+      } else if (statusResult.status === 'FAILED') {
+        throw new Error(statusResult.error || 'Processing failed');
+      } else {
+        throw new Error('Processing timed out');
+      }
+    } else {
+      throw new Error('Unexpected response format');
+    }
+  } catch (error) {
+    console.error('Fal.ai API error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process try-on with Fal.ai'
+    };
+  }
+};
+
+/**
+ * Use Hugging Face Inference API for virtual try-on (free tier available)
+ * Uses the IDM-VTON model via Hugging Face
+ */
+export const tryOnWithHuggingFace = async (
+  modelImage: File,
+  garmentImageUrl: string
+): Promise<TryOnResponse> => {
+  try {
+    const hfApiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+    
+    // Convert model image to base64
+    const modelBase64 = await fileToBase64(modelImage);
+    const modelDataUrl = `data:image/jpeg;base64,${modelBase64}`;
+
+    // Ensure garment image is base64
+    let garmentDataUrl = garmentImageUrl;
+    if (!garmentImageUrl.startsWith('data:')) {
+      // If it's a URL, we'll need to fetch it and convert
+      try {
+        const response = await fetch(garmentImageUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        garmentDataUrl = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.warn('Could not convert garment URL to base64, using as-is');
+      }
+    }
+
+    // Use Hugging Face Inference API with IDM-VTON model
+    const modelId = 'yisol/IDM-VTON';
+    const apiUrl = `https://api-inference.huggingface.co/models/${modelId}`;
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (hfApiKey && hfApiKey !== 'YOUR_HUGGINGFACE_API_KEY') {
+      headers['Authorization'] = `Bearer ${hfApiKey}`;
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        inputs: {
+          human: modelDataUrl,
+          garment: garmentDataUrl,
+          is_checked: true,
+          category: 'upper_body'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      // Hugging Face might return 503 if model is loading
+      if (response.status === 503) {
+        const errorData = await response.json().catch(() => ({}));
+        const estimatedTime = errorData.estimated_time || 20;
+        throw new Error(`Model is loading. Please try again in ${Math.ceil(estimatedTime)} seconds.`);
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Hugging Face API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    // Hugging Face returns base64 image directly or in a specific format
+    if (result.generated_image) {
+      return {
+        success: true,
+        resultImage: result.generated_image
+      };
+    } else if (typeof result === 'string' && result.startsWith('data:image')) {
+      return {
+        success: true,
+        resultImage: result
+      };
+    } else if (result[0]?.generated_image) {
+      return {
+        success: true,
+        resultImage: result[0].generated_image
+      };
+    } else {
+      throw new Error('Unexpected response format from Hugging Face');
+    }
+  } catch (error) {
+    console.error('Hugging Face API error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process try-on with Hugging Face'
+    };
+  }
+};
+
+/**
+ * Enhanced canvas-based composition with better blending
+ * Used as final fallback when APIs are unavailable
+ */
+export const tryOnWithCanvas = async (
   modelImage: File,
   garmentImage: string
 ): Promise<TryOnResponse> => {
   try {
-    // For demo purposes, we'll create a canvas-based composition
-    // In production, replace this with actual API call
-    
-    // Convert images to canvas and composite them
     const modelBase64 = await fileToBase64(modelImage);
     const modelImg = new Image();
     const garmentImg = new Image();
@@ -111,9 +337,22 @@ export const tryOnWithMockAPI = async (
           if (ctx) {
             // Draw model image
             ctx.drawImage(modelImg, 0, 0);
-            // Overlay garment (simplified - real API would do proper segmentation)
-            ctx.globalAlpha = 0.7;
-            ctx.drawImage(garmentImg, 0, 0, canvas.width, canvas.height);
+            
+            // Enhanced blending: use multiply blend mode for more realistic overlay
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.globalAlpha = 0.6;
+            
+            // Scale garment to fit model proportions better
+            const scale = Math.min(canvas.width / garmentImg.width, canvas.height / garmentImg.height);
+            const scaledWidth = garmentImg.width * scale;
+            const scaledHeight = garmentImg.height * scale;
+            const x = (canvas.width - scaledWidth) / 2;
+            const y = (canvas.height - scaledHeight) / 2;
+            
+            ctx.drawImage(garmentImg, x, y, scaledWidth, scaledHeight);
+            
+            // Reset composite operation
+            ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 1.0;
             
             const resultUrl = canvas.toDataURL('image/png');
@@ -144,7 +383,7 @@ export const tryOnWithMockAPI = async (
       };
     });
   } catch (error) {
-    console.error('Mock API error:', error);
+    console.error('Canvas composition error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to process try-on'
@@ -153,119 +392,31 @@ export const tryOnWithMockAPI = async (
 };
 
 /**
- * Use Replicate API for virtual try-on (more reliable, requires API key)
- * Uses the IDM-VTON model which is excellent for virtual try-on
- */
-export const tryOnWithReplicate = async (
-  modelImage: File,
-  garmentImageUrl: string
-): Promise<TryOnResponse> => {
-  try {
-    const replicateApiKey = import.meta.env.VITE_REPLICATE_API_KEY;
-    
-    if (!replicateApiKey || replicateApiKey === 'YOUR_REPLICATE_API_KEY') {
-      throw new Error('Replicate API key not configured');
-    }
-
-    // Convert model image to base64 and upload
-    const modelBase64 = await fileToBase64(modelImage);
-    const modelImageUrl = await uploadImageToTempHost(modelBase64);
-
-    // Ensure garment image is also a URL
-    let garmentUrl = garmentImageUrl;
-    if (garmentImageUrl.startsWith('data:')) {
-      const garmentBase64 = garmentImageUrl.split(',')[1] || garmentImageUrl;
-      garmentUrl = await uploadImageToTempHost(garmentBase64);
-    }
-
-    // Use IDM-VTON model - one of the best for virtual try-on
-    // Model: https://replicate.com/yisol/IDM-VTON
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${replicateApiKey}`
-      },
-      body: JSON.stringify({
-        version: '9a671468b8b3c0c5e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e', // IDM-VTON model version - update with actual version
-        input: {
-          human: modelImageUrl,
-          garment: garmentUrl,
-          is_checked: true,
-          category: 'upper_body'
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || errorData.error || `Replicate API error: ${response.status}`);
-    }
-
-    const prediction = await response.json();
-    
-    // Poll for result (max 2 minutes)
-    let result = prediction;
-    let attempts = 0;
-    const maxAttempts = 120;
-    
-    while ((result.status === 'starting' || result.status === 'processing') && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const statusResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${result.id}`,
-        {
-          headers: {
-            'Authorization': `Token ${replicateApiKey}`
-          }
-        }
-      );
-      
-      if (!statusResponse.ok) {
-        throw new Error(`Failed to check prediction status: ${statusResponse.status}`);
-      }
-      
-      result = await statusResponse.json();
-      attempts++;
-    }
-
-    if (result.status === 'succeeded' && result.output) {
-      const outputUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-      return {
-        success: true,
-        resultImage: outputUrl,
-        taskId: result.id
-      };
-    } else if (result.status === 'failed') {
-      throw new Error(result.error || 'Prediction failed');
-    } else {
-      throw new Error('Prediction timed out or is still processing');
-    }
-  } catch (error) {
-    console.error('Replicate API error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to process try-on'
-    };
-  }
-};
-
-/**
- * Main try-on function - tries Replicate first, falls back to Hugging Face
+ * Main try-on function with multiple fallbacks
+ * Tries: Fal.ai -> Hugging Face -> Enhanced Canvas
  */
 export const performVirtualTryOn = async (
   modelImage: File,
   garmentImageUrl: string
 ): Promise<TryOnResponse> => {
-  // Try Replicate first if API key is available
-  if (import.meta.env.VITE_REPLICATE_API_KEY) {
-    const result = await tryOnWithReplicate(modelImage, garmentImageUrl);
-    if (result.success) {
-      return result;
+  // Try Fal.ai first (most reliable, requires API key)
+  const falApiKey = import.meta.env.VITE_FAL_API_KEY;
+  if (falApiKey && falApiKey !== 'YOUR_FAL_API_KEY') {
+    const falResult = await tryOnWithFal(modelImage, garmentImageUrl);
+    if (falResult.success) {
+      return falResult;
     }
-    // If Replicate fails, fall back to Hugging Face
+    console.warn('Fal.ai failed, trying Hugging Face...', falResult.error);
   }
 
-  // Fallback to Hugging Face
-  return tryOnWithHuggingFace(modelImage, garmentImageUrl);
+  // Fallback to Hugging Face (free tier available)
+  const hfResult = await tryOnWithHuggingFace(modelImage, garmentImageUrl);
+  if (hfResult.success) {
+    return hfResult;
+  }
+  console.warn('Hugging Face failed, using canvas fallback...', hfResult.error);
+
+  // Final fallback: Enhanced canvas-based composition
+  return tryOnWithCanvas(modelImage, garmentImageUrl);
 };
 

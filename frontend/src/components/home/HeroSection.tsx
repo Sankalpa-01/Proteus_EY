@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Image as ImageIcon } from "lucide-react";
+import VoiceSearch from "./VoiceSearch";
 
 interface HeroSectionProps {
   heroImage: string;
@@ -16,6 +17,9 @@ const HeroSection = ({ heroImage, galleryImages }: HeroSectionProps) => {
         {/* Left - Hero Text */}
         <div className="space-y-6 sm:space-y-8 animate-fade-in order-1 lg:order-1">
           <div className="mt-4 sm:mt-6 lg:mt-28 space-y-3 sm:space-y-4">
+            {/* Voice Search Component */}
+            <VoiceSearch />
+            
             <h2 className="font-kurale text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-tight text-[#b55a00]">
               Shop quality apparel in a tap
             </h2>

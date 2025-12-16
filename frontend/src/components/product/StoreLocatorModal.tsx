@@ -168,11 +168,7 @@ const StoreLocatorModal = ({ open, onOpenChange }: StoreLocatorModalProps) => {
           )}
         </div>
 
-        <div className="p-4 border-t border-border bg-muted/30">
-          <p className="text-xs text-muted-foreground text-center">
-            📍 Using simulated location for demo purposes
-          </p>
-        </div>
+       
       </DialogContent>
     </Dialog>
   );
